@@ -1,0 +1,189 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+---
+## Title: "Bellabeat Case Study with R"
+
+## Author: Oluwatobi Owamokele
+
+## Date: '2022-05-31'
+
+
+
+
+
+
+
+## The Company - Bellabeat
+
+![Bellabeat](https://bellabeat.com/wp-content/uploads/2020/10/bb_31.jpg)
+
+Bellabeat is a high-tech manufacturer of health-focused smart products for women. The stakeholders and founders are Urška Sršen and Sando Mur. Sršen used her background as an artist to develop beautifully designed technology that informs and inspires women around the world. Collecting data on activity, sleep, stress, and reproductive health has allowed Bellabeat to empower women with knowledge about their own health and habits. Since it was founded in 2013, Bellabeat has grown rapidly and quickly positioned itself as a tech-driven wellness company for women.
+
+
+## Questions for analysis
+
+1. What are some trends in smart device usage?
+2. How could these trends apply to Bellabeat customers?
+3. How could these trends help influence Bellabeat marketing strategy?
+
+## Business Task
+
+Identifying opportunities for growth based on market trends for Bellabeat's fitness tracker and recommendations to improve marketing strategy in order to thrive better in the market.
+
+## About dataset
+
+Data was got from public dataset- <https://www.kaggle.com/datasets/arashnic/fitbit> (CC0: Public Domain, dataset made available through Mobius): This Kaggle data set contains personal fitness tracker from fitbit users. These Fitbit users consented to the submission of personal tracker data, including minute-level output for physical activity, heart rate, and sleep monitoring. It includes information about daily activity, steps, sleep patterns, intensities of activities, weight ,heart rate that can be used to explore users’ habits.
+
+## Loading packages for analysis
+
+```{r}
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("tidyr")
+install.packages("dplyr")
+install.packages("ggplot2")
+
+```
+
+## Loading packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Import datasets
+
+```{r}
+activity <- read.csv("dailyActivity_merged.csv")
+calories <- read.csv("dailyCalories_merged.csv")
+intensities <- read.csv("dailyIntensities_merged.csv")
+sleep <- read.csv("sleepDay_merged.csv")
+steps <- read.csv("dailySteps_merged.csv")
+weight_log_info <- ("weightLogInfo_merged.csv")
+```
+
+```{r}
+head(activity)
+
+```
+
+## Data Cleaning 
+
+I already noticed the error in date format when I initially loaded the datasets and this error is present in all.  Before continuing this analysis, the datatype must be changed correctly to date and datetime.
+
+
+#### Formatting datasets
+```{r}
+activity$ActivityDate <- as.Date(activity$ActivityDate, "%m/%d/%Y")
+activity$date <- format(activity$ActivityDate, format = "%m/%d/%y")
+calories$ActivityDay <- as.Date(calories$ActivityDay , "%m/%d/%Y")
+intensities$ActivityDay <- as.Date(intensities$ActivityDay, "%m/%d/%Y")
+sleep$SleepDay <- as.POSIXct(sleep$SleepDay, format= "%m/%d/%Y %I:%M:%S %p", tz= Sys.timezone())
+sleep$date <- format(sleep$SleepDay, format = "%m/%d/%y")
+steps$ActivityDay <- as.Date(steps$ActivityDay, "%m/%d/%Y")
+```
+
+
+
+#### Checking for duplicates
+```{r}
+sum(duplicated(activity))
+sum(duplicated(calories))
+sum(duplicated(intensities))
+sum(duplicated(steps))
+sum(duplicated(sleep))
+```
+
+#### Remove duplicates
+
+```{r}
+sleep <- sleep %>%
+  distinct() %>%
+  drop_na()
+```
+#### Confirm duplicates have been removed
+
+```{r}
+sum(duplicated(sleep))
+```
+## Summarizing datasets
+
+```{r}
+# activity
+activity %>%  
+  select(TotalSteps,
+         TotalDistance,
+         SedentaryMinutes, Calories) %>%
+  summary()
+
+#calories 
+calories %>%
+  select(Calories) %>%
+  summary()
+  
+#sleep
+  sleep %>%
+  select(TotalMinutesAsleep, TotalTimeInBed) %>%
+  summary()
+
+```
+
+## Visualization 
+```{r}
+ggplot(data=activity, aes(x=TotalSteps, y=Calories)) + 
+  geom_point() + geom_smooth() + labs (title="Total Steps vs. Calories")
+```
+
+There is visibly a positive correlation between Total steps and Calories which shows us that more steps taken every day will lead to more calories being burned
+
+```{r}
+ggplot(data=sleep, aes(x=TotalMinutesAsleep, y=TotalTimeInBed)) + 
+  geom_point()+ labs(title="Total Minutes Asleep vs. Total Time in Bed")
+```
+
+This graphs shows a positive linear correlation. Hence, the more time they spend in bed, the likelihood they fall asleep
+
+#### Grouping users by steps taken
+```{r}
+daily_average_steps <- activity %>%
+  group_by(Id) %>%
+  summarise (mean_steps = mean(TotalSteps))
+head(daily_average_steps)
+```
+
+```{r}
+user_group <- daily_average_steps %>%
+  mutate(user_group = case_when(
+    mean_steps < 5000 ~ "sedentary",
+    mean_steps >= 5000 & mean_steps <= 7499 ~ "lightly active", 
+    mean_steps >= 7500 & mean_steps <= 9999 ~ "moderately active", 
+    mean_steps >= 10000 ~ "very active"
+  ))
+head(user_group)
+```
+
+```{r}
+ggplot(data=user_group)+
+  geom_bar(mapping = aes(user_group, color=user_group))+
+  labs(title="User group")
+```
+
+## Conclusion and Recommendation
+
+1. Majority of users are lightyly active and moderately active.
+2. Sedentary minutes was approx 991 minutes which is too high for someone aiming for fitness.
+3. Many of the users on the average sleep less than six hours which isn't the best but should attain at least seven hours of sleep or more.
+4. There should be a notification to alert users to get moving and monitor their sleep patterns.
+5. There should be a monitor to help users keep track of their weight and maintain healthy BMI.
+6. Notifications should be put in place to alert user to workout for at least twenty(20) minutes each day and to take water to stay hydrated.
+7. In summary,the fitness tracker application needs a bit of revamping by programmers which will help achieve the above goals and help users achieve a more healthy lifestyle and thus stand out in the competitive market.
+
+This is my first project using R. Comments and recommendations are highly appreciated.
